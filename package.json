@@ -1,6 +1,16 @@
 {
-  "name": "ts-express",
+  "name": "slacktive-server-v2",
   "version": "0.0.0",
+  "description": "슬랙티브 서버 버전2",
+  "author": "akodm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akodm"
+  },
+  "engines": {
+    "node": ">=16.13.0"
+  },
+  "engineStrict": true,
   "private": true,
   "scripts": {
     "start": "ts-node ./src/app.ts",
