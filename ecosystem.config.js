@@ -13,8 +13,10 @@ module.exports = {
 				"node_modules", 
 				".git", 
 				"ecosystem.config.js", 
-				"./src/public", 
+				"build",
+				"./src/client",
 				"*.log",
+				".env"
 			],
 			exec_mode: "cluster",
 			wait_ready: true,

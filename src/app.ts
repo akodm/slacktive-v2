@@ -12,7 +12,6 @@ import { createClient } from 'redis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import moment from 'moment';
 import sequelize from './sequelize';
-import indexRouter from './routes';
 import userRouter from './routes/user';
 import slackRouter from './routes/slack';
 moment.locale("ko");
@@ -38,12 +37,15 @@ const force = DB_FORCE === "true" ? true : false;
 let pmInit = false;
 
 app.use(cors(corsOptions));
-app.use(helmet());
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'", "'unsafe-inline'"]
+  }
+}));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
 
 if(NODE_ENV === "production") {
   if(pm_id === "0") {
@@ -69,20 +71,13 @@ const subClient = pubClient.duplicate();
 
 io.adapter(createAdapter(pubClient, subClient));
 
-app.listen(port, () => {
-  if(force && pmInit) {
-    sequelize.sync({ force });
-  } else {
-    sequelize.sync();
-  }
-
-  console.log("mysql database connect success !");
-
-  console.log(`${process.env?.NODE_ENV} Hello Typescript-Express ! ${moment().format("YYYY. MM. DD. (ddd) HH:mm:ss")}`);
-  process.send && process.send("ready");
+app.get("/", (req, res, next) => {
+  return res.sendFile(path.join(__dirname, '/client/build/index.html'));
 });
 
-app.use("/", indexRouter);
+console.log("React Build File Static Upload.");
+app.use(express.static(path.join(__dirname, "client/build")));
+
 app.use("/user", userRouter);
 app.use("/slack", slackRouter(io));
 
@@ -101,6 +96,19 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     data: null,
     message
   });
+});
+
+app.listen(port, () => {
+  if(force && pmInit) {
+    sequelize.sync({ force });
+  } else {
+    // sequelize.sync();
+  }
+
+  console.log("mysql database connect success !");
+
+  console.log(`${process.env?.NODE_ENV} Hello Typescript-Express ! ${moment().format("YYYY. MM. DD. (ddd) HH:mm:ss")}`);
+  process.send && process.send("ready");
 });
 
 export default app;
