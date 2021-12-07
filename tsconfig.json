@@ -28,6 +28,7 @@
     "*.json", 
     "*.log", 
     "*.config.js", 
-    "build"
+    "build",
+    "./src/client"
   ]
 }

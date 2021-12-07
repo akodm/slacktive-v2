@@ -3,7 +3,7 @@ module.exports = {
 		{
 			name: "SERVER",
 			script: "./build/app.js",
-			instances: 4,
+			instances: 0,
 			autorestart: true,
 			watch: true,
 			stop_exit_codes: [0],
