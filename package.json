@@ -14,7 +14,8 @@
   "private": true,
   "scripts": {
     "start": "ts-node ./src/app.ts",
-    "ts-dev": "nodemon --exec ts-node ./src/app.ts",
+    "server-dev": "nodemon --exec ts-node ./src/app.ts",
+    "client-dev": "concurrently \"yarn server-dev\" \"cd ./src/client && yarn start\"",
     "tsc": "tsc && cp -r ./src/client/build ./build/client",
     "pm2": "pm2 start ecosystem.config.js --env development && pm2 logs",
     "pm2-pro": "pm2 start ecosystem.config.js --env production && pm2 logs"
