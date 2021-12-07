@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import express from 'express';
-import sequelize from '../sequelize';
 import { Model } from "sequelize/types";
+import sequelize from '../sequelize';
 
 const router = express.Router();
 
