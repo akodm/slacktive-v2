@@ -28,8 +28,7 @@ export const userTable = (sequelize: Sequelize): UserStatic => {
     },
     slack: {
       type: DataTypes.STRING(20),
-      allowNull: false,
-      unique: true,
+      primaryKey: true,
       comment: "슬랙 아이디"
     },
     name: {
