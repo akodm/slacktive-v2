@@ -11,8 +11,6 @@ import { TaskStatic, taskTable } from './models/task';
 import { TokenStatic, tokenTable } from './models/token';
 import { UserStatic, userTable } from './models/user';
 
-console.log("mysql database connecting..");
-
 const { 
 	DB = "database", 
 	ROOT = "root", 

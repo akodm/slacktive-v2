@@ -6,10 +6,10 @@ import logger from 'morgan';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { Server, Socket } from 'socket.io';
-import { createServer } from 'http';
-import { createClient } from 'redis';
-import { createAdapter } from '@socket.io/redis-adapter';
+// import { Server, Socket } from 'socket.io';
+// import { createServer } from 'http';
+// import { RedisClient } from 'redis';
+// import { createAdapter } from 'socket.io-redis';
 import moment from 'moment';
 import sequelize from './sequelize';
 import userRouter from './routes/user';
@@ -22,8 +22,8 @@ const {
   DB_FORCE = "false",
 	pm_id,
 	NODE_ENV = "development",
-  REDIS_HOST,
-  REDIS_PORT
+  // REDIS_HOST,
+  // REDIS_PORT
 } = process.env;
 
 const app = express();
@@ -57,19 +57,18 @@ if(NODE_ENV === "production") {
   pmInit = true;
 }
 
-const httpServer = createServer(app);
+app.listen(port, () => {
+  if(force && pmInit) {
+    sequelize.sync({ force });
+  } else {
+    // sequelize.sync();
+  }
 
-const io = new Server(httpServer);
+  console.log("mysql database connect success !");
 
-const pubClient = createClient({ socket: { host: REDIS_HOST, port: parseInt(REDIS_PORT, 10) }});
-const subClient = pubClient.duplicate();
-
-(async () => {
-  await pubClient.connect();
-  await subClient.connect();
-})();
-
-io.adapter(createAdapter(pubClient, subClient));
+  console.log(`${process.env?.NODE_ENV} Hello Slacktive ! ${moment().format("YYYY. MM. DD. (ddd) HH:mm:ss")}`);
+  process.send && process.send("ready");
+});
 
 app.get("/", (req, res, next) => {
   return res.sendFile(path.join(__dirname, '/client/build/index.html'));
@@ -79,7 +78,7 @@ console.log("React Build File Static Upload.");
 app.use(express.static(path.join(__dirname, "client/build")));
 
 app.use("/user", userRouter);
-app.use("/slack", slackRouter(io));
+app.use("/slack", slackRouter(null));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   return next({ s: 404, m: "존재하지 않는 URL입니다." });
@@ -96,19 +95,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     data: null,
     message
   });
-});
-
-app.listen(port, () => {
-  if(force && pmInit) {
-    sequelize.sync({ force });
-  } else {
-    // sequelize.sync();
-  }
-
-  console.log("mysql database connect success !");
-
-  console.log(`${process.env?.NODE_ENV} Hello Typescript-Express ! ${moment().format("YYYY. MM. DD. (ddd) HH:mm:ss")}`);
-  process.send && process.send("ready");
 });
 
 export default app;
