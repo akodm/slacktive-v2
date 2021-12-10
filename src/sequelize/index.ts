@@ -91,15 +91,18 @@ try {
 	user.hasOne(state);
 	user.hasOne(alarm);
 
-	task.belongsTo(user, { foreignKey: "slack" });
-	overtime.belongsTo(user, { foreignKey: "slack" });
-	holiday.belongsTo(user, { foreignKey: "slack" });
-	atten.belongsTo(user, { foreignKey: "slack" });
-	addHoliday.belongsTo(user, { foreignKey: "slack" });
+	task.belongsTo(user);
+	overtime.belongsTo(user);
+	holiday.belongsTo(user);
+	atten.belongsTo(user);
+	addHoliday.belongsTo(user);
 
-	token.belongsTo(user, { foreignKey: "slack" });
-	state.belongsTo(user, { foreignKey: "slack" });
-	alarm.belongsTo(user, { foreignKey: "slack" });
+	token.belongsTo(user);
+	state.belongsTo(user);
+	alarm.belongsTo(user);
+
+	overtime.belongsTo(atten, { foreignKey: "startDataId", targetKey: "id" });
+	overtime.belongsTo(atten, { foreignKey: "endDataId", targetKey: "id" });
 } catch(err) {
 	console.log("mysql database connect error:", err);
 	process.exit(1);

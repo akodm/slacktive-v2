@@ -28,12 +28,12 @@ export const userTable = (sequelize: Sequelize): UserStatic => {
     },
     slack: {
       type: DataTypes.STRING(20),
-      primaryKey: true,
+      unique: true,
       comment: "슬랙 아이디"
     },
     name: {
       type: DataTypes.STRING(10),
-      allowNull: false,
+      allowNull: true,
       comment: "이름"
     },
     channel: {
@@ -54,7 +54,7 @@ export const userTable = (sequelize: Sequelize): UserStatic => {
     },
     email: {
       type: DataTypes.STRING(50),
-      allowNull: false,
+      allowNull: true,
       unique: true,
       comment: "이메일"
     },

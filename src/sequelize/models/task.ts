@@ -10,7 +10,7 @@ export interface TaskAttributes {
   start: string;
   end: string;
   name: string;
-  slack: string;
+  userId: number;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -69,10 +69,10 @@ export const taskTable = (sequelize: Sequelize): TaskStatic => {
       allowNull: false,
       comment: "이름"
     },
-    slack: {
-      type: DataTypes.STRING(20),
-      primaryKey: true,
-      comment: "슬랙 아이디"
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: "사용자 아이디"
     },
   }, {
     freezeTableName: true,

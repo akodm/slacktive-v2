@@ -14,6 +14,7 @@ import moment from 'moment';
 import sequelize from './sequelize';
 import userRouter from './routes/user';
 import slackRouter from './routes/slack';
+import loginRouter from './routes/login';
 moment.locale("ko");
 
 const {
@@ -39,7 +40,7 @@ let pmInit = false;
 app.use(cors(corsOptions));
 app.use(helmet.contentSecurityPolicy({
   directives: {
-    defaultSrc: ["'self'", "'unsafe-inline'"]
+    defaultSrc: ["'self'", "'unsafe-inline'"],
   }
 }));
 app.use(logger("dev"));
@@ -70,14 +71,24 @@ app.listen(port, () => {
   process.send && process.send("ready");
 });
 
-app.get("/", (req, res, next) => {
+app.get("/", (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Login 여부에 따라 다른 페이지 제공.
+   * 인증 여부에 따라 다른 페이지 제공.
+   */
+
   return res.sendFile(path.join(__dirname, '/client/build/index.html'));
 });
 
 console.log("React Build File Static Upload.");
 app.use(express.static(path.join(__dirname, "client/build")));
 
+/**
+ * 로그인 제외 API 들은 모두 사용자 인증을 거쳐야 함.
+ */
+
 app.use("/user", userRouter);
+app.use("/login", loginRouter);
 app.use("/slack", slackRouter(null));
 
 app.use((req: Request, res: Response, next: NextFunction) => {

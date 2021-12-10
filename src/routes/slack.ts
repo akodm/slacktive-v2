@@ -1,20 +1,24 @@
 import { NextFunction, Request, Response } from "express";
 import express from 'express';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { Model } from "sequelize/types";
 import sequelize from '../sequelize';
+import axios from "axios";
+import { encrypt } from "../utils/crypto";
+import { UserAttributes } from "../sequelize/models/user";
 
 const router = express.Router();
 
-const { user } = sequelize.models;
+const { CLIENT_ID, SECRET_ID, REDIRECTION_URL } = process.env;
+
+const { user, token } = sequelize.models;
 
 /**
  * APIs
  * 1. 팀 멤버
  * 2. 팀 채널
  * 3. 채널 히스토리
- * 4. 로그인
- * 5. 이벤트
+ * 4. 이벤트
  * 
  * Fns
  * 1. 출퇴근 파싱
@@ -24,18 +28,5 @@ const { user } = sequelize.models;
  */
 
 export default (io: Server) => {
-  router.get("/", async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const data: Model<any, any>[] = await user.findAll();
-
-      return res.status(200).send({
-        result: true,
-        data,
-      });
-    } catch(err) {
-      return next(err);
-    }
-  });
-
   return router;
 };

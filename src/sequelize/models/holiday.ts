@@ -10,7 +10,7 @@ export interface HolidayAttributes {
   ts: string;
   format: string;
   name: string;
-  slack: string;
+  userId: number;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -51,7 +51,7 @@ export const holidayTable = (sequelize: Sequelize): HolidayStatic => {
     count: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      comment: "갯 수"
+      comment: "사용 갯 수"
     },
     ts: {
       type: DataTypes.STRING(30),
@@ -66,13 +66,13 @@ export const holidayTable = (sequelize: Sequelize): HolidayStatic => {
     },
     name: {
       type: DataTypes.STRING(10),
-      allowNull: false,
+      allowNull: true,
       comment: "이름"
     },
-    slack: {
-      type: DataTypes.STRING(20),
-      primaryKey: true,
-      comment: "슬랙 아이디"
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      comment: "사용자 아이디"
     },
   }, {
     freezeTableName: true,
