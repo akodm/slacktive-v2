@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from "express";
-import express from 'express';
+import express, { NextFunction, Request, Response } from "express";
 import { Model } from "sequelize/types";
-import sequelize from '../sequelize';
 import axios from "axios";
-import { encrypt } from "../utils/crypto";
+
 import { UserAttributes } from "../sequelize/models/user";
+import { encrypt } from "../utils/crypto";
+import sequelize from '../sequelize';
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     });
 
     return res.status(200).send(data);
-  } catch(err) {
+  } catch (err) {
     return next(err);
   }
 });
@@ -51,15 +51,14 @@ router.get("/process", async (req: Request, res: Response, next: NextFunction) =
       }
     });
 
-    if (!isUser || !isUser.getDataValue("id")) {
+    if (!isUser || !isUser.getDataValue("slack")) {
       return next({ s: 403, m: "사용자를 찾을 수 없습니다." });
     }
 
-    req.query.id = `${isUser.getDataValue("id")}`;
     req.query.slack = data.user_id;
 
-    const access = "access token";
-    const refresh = "refresh token";
+    const access = "access token"; // query  send
+    const refresh = "refresh token"; // query send
 
     await token.update({
       xoxp: encrypt(data.access_token)

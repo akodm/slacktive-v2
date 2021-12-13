@@ -6,7 +6,7 @@ export interface OvertimeAttributes {
   endData: number;
   overtime: number;
   name: string;
-  userId: number;
+  slack: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -44,10 +44,10 @@ export const overtimeTable = (sequelize: Sequelize): OvertimeStatic => {
       allowNull: true,
       comment: "이름"
     },
-    userId: {
-      type: DataTypes.INTEGER,
+    slack: {
+      type: DataTypes.STRING(20),
       allowNull: false,
-      comment: "사용자 아이디"
+      comment: "슬랙 아이디"
     },
   }, {
     freezeTableName: true,

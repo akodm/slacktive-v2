@@ -5,7 +5,7 @@ export interface TokenAttributes {
   xoxp: string;
   access: string;
   refresh: string;
-  userId: number;
+  slack: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -38,10 +38,10 @@ export const tokenTable = (sequelize: Sequelize): TokenStatic => {
       allowNull: false,
       comment: "사용자 새고로침 토큰"
     },
-    userId: {
-      type: DataTypes.INTEGER,
+    slack: {
+      type: DataTypes.STRING(20),
       allowNull: false,
-      comment: "사용자 아이디"
+      comment: "슬랙 아이디"
     },
   }, {
     freezeTableName: true,

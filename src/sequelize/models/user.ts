@@ -1,7 +1,6 @@
 import { Sequelize, DataTypes, BuildOptions, Model } from 'sequelize';
 
 export interface UserAttributes {
-  id: number;
   slack: string;
   name: string;
   channel: string;
@@ -21,14 +20,9 @@ export type UserStatic = typeof Model & {
 
 export const userTable = (sequelize: Sequelize): UserStatic => {
   return <UserStatic>sequelize.define('user', {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
     slack: {
       type: DataTypes.STRING(20),
-      unique: true,
+      primaryKey: true,
       comment: "슬랙 아이디"
     },
     name: {
@@ -45,7 +39,7 @@ export const userTable = (sequelize: Sequelize): UserStatic => {
     tag: {
       type: DataTypes.STRING(10),
       allowNull: true,
-      comment: "지급 및 구분"
+      comment: "직급 및 구분"
     },
     phone: {
       type: DataTypes.STRING(15),

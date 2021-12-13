@@ -1,14 +1,15 @@
 import { Sequelize } from 'sequelize';
+
 import { AddHolidayStatic, addHolidayTable } from './models/addHoliday';
-import { AlarmStatic, alarmTable } from './models/alarm';
-import { AttenStatic, attenTable } from './models/atten';
+import { OvertimeStatic, overtimeTable } from './models/overtime';
 import { ChannelStatic, channelTable } from './models/channel';
 import { HolidayStatic, holidayTable } from './models/holiday';
 import { MomentStatic, momentTable } from './models/moment';
-import { OvertimeStatic, overtimeTable } from './models/overtime';
+import { AlarmStatic, alarmTable } from './models/alarm';
+import { AttenStatic, attenTable } from './models/atten';
 import { StateStatic, stateTable } from './models/state';
-import { TaskStatic, taskTable } from './models/task';
 import { TokenStatic, tokenTable } from './models/token';
+import { TaskStatic, taskTable } from './models/task';
 import { UserStatic, userTable } from './models/user';
 
 const { 
@@ -81,25 +82,25 @@ try {
 		addHoliday
 	} = sequelize.models;
 
-	user.hasMany(task);
-	user.hasMany(overtime);
-	user.hasMany(holiday);
-	user.hasMany(atten);
-	user.hasMany(addHoliday);
+	user.hasMany(task, { foreignKey: "slack", sourceKey: "slack" });
+	user.hasMany(overtime, { foreignKey: "slack", sourceKey: "slack" });
+	user.hasMany(holiday, { foreignKey: "slack", sourceKey: "slack" });
+	user.hasMany(atten, { foreignKey: "slack", sourceKey: "slack" });
+	user.hasMany(addHoliday, { foreignKey: "slack", sourceKey: "slack" });
 
-	user.hasOne(token);
-	user.hasOne(state);
-	user.hasOne(alarm);
+	user.hasOne(token, { foreignKey: "slack", sourceKey: "slack" });
+	user.hasOne(state, { foreignKey: "slack", sourceKey: "slack" });
+	user.hasOne(alarm, { foreignKey: "slack", sourceKey: "slack" });
 
-	task.belongsTo(user);
-	overtime.belongsTo(user);
-	holiday.belongsTo(user);
-	atten.belongsTo(user);
-	addHoliday.belongsTo(user);
+	task.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
+	overtime.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
+	holiday.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
+	atten.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
+	addHoliday.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
 
-	token.belongsTo(user);
-	state.belongsTo(user);
-	alarm.belongsTo(user);
+	token.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
+	state.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
+	alarm.belongsTo(user, { foreignKey: "slack", targetKey: "slack" });
 
 	overtime.belongsTo(atten, { foreignKey: "startDataId", targetKey: "id" });
 	overtime.belongsTo(atten, { foreignKey: "endDataId", targetKey: "id" });

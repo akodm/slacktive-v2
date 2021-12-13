@@ -1,20 +1,22 @@
 import dotenv from 'dotenv';
 dotenv.config();
+
 import express, { NextFunction, Request, Response } from 'express';
-import path from 'path';
-import logger from 'morgan';
-import cors from 'cors';
-import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import logger from 'morgan';
+import moment from 'moment';
+import cors from 'cors';
+import path from 'path';
+// import { createAdapter } from 'socket.io-redis';
 // import { Server, Socket } from 'socket.io';
 // import { createServer } from 'http';
 // import { RedisClient } from 'redis';
-// import { createAdapter } from 'socket.io-redis';
-import moment from 'moment';
-import sequelize from './sequelize';
-import userRouter from './routes/user';
-import slackRouter from './routes/slack';
+
 import loginRouter from './routes/login';
+import slackRouter from './routes/slack';
+import userRouter from './routes/user';
+import sequelize from './sequelize';
 moment.locale("ko");
 
 const {

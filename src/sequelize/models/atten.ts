@@ -8,7 +8,7 @@ export interface AttenAttributes {
   ts: string;
   format: string;
   name: string;
-  userId: number;
+  slack: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -56,10 +56,10 @@ export const attenTable = (sequelize: Sequelize): AttenStatic => {
       allowNull: true,
       comment: "이름"
     },
-    userId: {
-      type: DataTypes.INTEGER,
+    slack: {
+      type: DataTypes.STRING(20),
       allowNull: false,
-      comment: "사용자 아이디"
+      comment: "슬랙 아이디"
     },
   }, {
     freezeTableName: true,

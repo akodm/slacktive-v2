@@ -9,7 +9,7 @@ export interface StateAttributes {
   overtimeCount: number;
   state: string;
   name: string;
-  userId: number;
+  slack: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -68,10 +68,10 @@ export const stateTable = (sequelize: Sequelize): StateStatic => {
       allowNull: true,
       comment: "이름"
     },
-    userId: {
-      type: DataTypes.INTEGER,
+    slack: {
+      type: DataTypes.STRING(20),
       allowNull: false,
-      comment: "사용자 아이디"
+      comment: "슬랙 아이디"
     },
   }, {
     freezeTableName: true,
