@@ -2,7 +2,7 @@ import { Model } from 'sequelize/types';
 import { Op } from 'sequelize';
 import moment from 'moment';
 
-import { ATTEN_CATEGORY, CATEGORYS, DEFAULT_FORMAT, MINUTE_EMPTY, PMS, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET } from './consts';
+import { ATTEN_CATEGORY, CATEGORYS, DEFAULT_FORMAT, NUMBER_EMPTY, PMS, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET } from './consts';
 import { DataResTypes, InitTypes, SlackDataTypes, TimeDataTypes, TimeParserTypes } from './types';
 import { ChannelAttributes } from '../sequelize/models/channel';
 import { StateAttributes } from '../sequelize/models/state';
@@ -124,7 +124,9 @@ export const timeConversion = (ts: number, text: string[], category): TimeParser
 
     const [ H, m, A ] = moment.unix(ts).utcOffset(UTC_OFFSET).format("HH/mm/A")?.split("/");
 
-    if (hour && PMS.includes(A) && parseInt(hour) >= 12 && category === "퇴근") {
+    console.log("ampm? :", A);
+
+    if (hour && PMS.includes(A) && parseInt(hour) <= 12 && category === "퇴근") {
       hour = `${parseInt(hour, 10) + 12}`;
     }
 
@@ -144,16 +146,20 @@ export const timeConversion = (ts: number, text: string[], category): TimeParser
       hour = `${parseInt(hour) - 1}`;
     }
 
-    if (!hour && mint && !MINUTE_EMPTY.test(mint)) {
-      mint = `0${mint}`;
-    }
-
     if (!hour) {
       hour = H;
     }
 
     if (!mint) {
       mint = m;
+    }
+
+    if (!NUMBER_EMPTY.test(hour)) {
+      hour = `0${hour}`;
+    }
+
+    if (!NUMBER_EMPTY.test(mint)) {
+      mint = `0${mint}`;
     }
 
     res = `${hour}:${mint}`;
@@ -200,11 +206,11 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
         const checkAM = moment.unix(ts).utcOffset(UTC_OFFSET).format(`YYYY-MM-DD ${TARDY_AM}`);
         const checkPM = moment.unix(ts).utcOffset(UTC_OFFSET).format(`YYYY-MM-DD ${TARDY_PM}`);
 
-        if (!isHalf) {
+        if (isHalf) {
           category = moment(time, DEFAULT_FORMAT).isAfter(checkPM, "minutes") ? "지각" : category;
         }
 
-        if (isHalf) {
+        if (!isHalf) {
           category = moment(time, DEFAULT_FORMAT).isAfter(checkAM, "minutes") ? "지각" : category;
         }
       }
