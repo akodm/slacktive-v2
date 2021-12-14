@@ -31,7 +31,7 @@ export default (io: Server) => {
       let status = 200;
 
       if (!admin_oauth) {
-        return next({ s: 403, m: "권한이 않습니다." });
+        return next({ s: 403, m: "권한이 없습니다." });
       }
 
       const params = qs.stringify({
@@ -75,7 +75,7 @@ export default (io: Server) => {
       let status = 200;
 
       if (!admin_oauth) {
-        return next({ s: 403, m: "권한이 않습니다." });
+        return next({ s: 403, m: "권한이 없습니다." });
       }
 
       const params = qs.stringify({
@@ -122,7 +122,7 @@ export default (io: Server) => {
       const oldest = moment(now).format("X");
 
       if (!admin_oauth) {
-        return next({ s: 403, m: "권한이 않습니다." });
+        return next({ s: 403, m: "권한이 없습니다." });
       }
 
       const params = qs.stringify({
