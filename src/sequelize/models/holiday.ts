@@ -56,8 +56,8 @@ export const holidayTable = (sequelize: Sequelize): HolidayStatic => {
     ts: {
       type: DataTypes.STRING(30),
       allowNull: false,
-      comment: "슬랙 메시지 타임스탬프",
       unique: true,
+      comment: "슬랙 메시지 타임스탬프",
     },
     format: {
       type: DataTypes.STRING(30),

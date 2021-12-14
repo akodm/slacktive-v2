@@ -24,6 +24,7 @@ export const channelTable = (sequelize: Sequelize): ChannelStatic => {
     channel: {
       type: DataTypes.STRING(20),
       allowNull: false,
+      unique: true,
       comment: "채널 아이디"
     },
     memo: {

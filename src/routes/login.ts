@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
 import { Model } from "sequelize/types";
 import axios from "axios";
+import qs from 'qs';
 
 import { UserAttributes } from "../sequelize/models/user";
 import { encrypt } from "../utils/crypto";
@@ -32,18 +33,25 @@ router.get("/process", async (req: Request, res: Response, next: NextFunction) =
   try {
     const { code } = req.query;
 
-    const { data } = await axios.get("https://slack.com/api/oauth.access", {
-      params : {
-        client_id: CLIENT_ID,
-        client_secret: SECRET_ID,
-        redirect_uri: REDIRECTION_URL,
-        code,
+    const body = qs.stringify({
+      client_id: CLIENT_ID,
+      client_secret: SECRET_ID,
+      edirect_uri: REDIRECTION_URL,
+      code
+    });
+
+    const { data } = await axios.post("https://slack.com/api/oauth.v2.access", body, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
       }
     });
 
     if (!data.ok || !data.access_token || !data.user_id) {
+      console.log(data);
       return next({ s: 403, m: "로그인에 실패하였습니다." });
     }
+
+    console.log(data);
 
     const isUser: Model<UserAttributes | null> = await user.findOne({
       where: {

@@ -1,4 +1,5 @@
 import { Model } from 'sequelize/types';
+import { Op } from 'sequelize';
 import moment from 'moment';
 
 import { ATTEN_CATEGORY, CATEGORYS, DEFAULT_FORMAT, MINUTE_EMPTY, PMS, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET } from './consts';
@@ -96,7 +97,7 @@ export const isHalfHoliday = async (slack): Promise<DataResTypes> => {
       where: {
         slack,
         state: {
-          $or: ["오후반차", "오전반차", "반차"]
+          [Op.or]: ["오후반차", "오전반차", "반차"]
         }
       }
     });
@@ -117,6 +118,9 @@ export const timeConversion = (ts: number, text: string[], category): TimeParser
 
   try {
     let [hour, mint] = text;
+
+    hour = hour?.replace(/시/g, "");
+    mint = mint?.replace(/분/g, "");
 
     const [ H, m, A ] = moment.unix(ts).utcOffset(UTC_OFFSET).format("HH/mm/A")?.split("/");
 
@@ -178,11 +182,11 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
       const splitText: RegExpExecArray = TIME_REGEXP.exec(text);
       const tsFormat: string = moment.unix(ts).utcOffset(UTC_OFFSET).format("YYYY-MM-DD HH:mm");
       let category: string = CATEGORYS.reduce((result: string, cate) => (cate.sub.includes(splitText[3])) ? cate.key : result, "출근");
-      const { hour, mint, time, error }: TimeParserTypes = timeConversion(ts, [splitText[1], splitText[2]], category);
+      const { time, error }: TimeParserTypes = timeConversion(ts, [splitText[1], splitText[2]], category);
       const { result, error: err, data }: DataResTypes = await isHalfHoliday(user);
       const name: string | null = await findUserName(user);
 
-      if (!hour || !mint || !time || error || err) {
+      if (!time || error || err) {
         throw { message: error || err };
       }
 
@@ -211,7 +215,7 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
         time,
         ts,
         format: tsFormat,
-        name: name,
+        name,
         slack: user
       };
     } else {
@@ -224,26 +228,50 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
   }
 };
 
+export const defaultEvent = async (event) => {
+  try {
+    console.log("default event");
+  } catch (err) {
+    console.error(err.message, "기본 이벤트 처리가 정상적으로 수행되지 않았습니다.");
+  }
+};
+
+export const timeChannelEvent = async (event) => {
+  try {
+    console.log("time channel event");
+  } catch (err) {
+    console.error(err.message, "출퇴근 관련 이벤트 처리가 정상적으로 수행되지 않았습니다.");
+  }
+};
+
+export const holidayChannelEvent = async (event) => {
+  try {
+    console.log("holiday channel event");
+  } catch (err) {
+    console.error(err.message, "휴가 관련 이벤트 처리가 정상적으로 수행되지 않았습니다.");
+  }
+};
+
 export const messageChangeEvent = async () => {
   try {
-
+    console.log("Message Change");
   } catch (err) {
-    
+    console.error(err.message, "메시지 변경 이벤트 처리에 실패하였습니다.");
   }
 };
 
 export const messageDeleteEvent = async () => {
   try {
-
+    console.log("Message Delete");
   } catch (err) {
-    
+    console.error(err.message, "메시지 삭제 이벤트 처리에 실패하였습니다.");
   }
 };
 
 export const messageCreateEvent = async () => {
   try {
-
+    console.log("Message Create");
   } catch (err) {
-
+    console.error(err.message, "메시지 생성 이벤트 처리에 실패하였습니다.");
   }
 };

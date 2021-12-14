@@ -42,7 +42,7 @@ let pmInit = false;
 app.use(cors(corsOptions));
 app.use(helmet.contentSecurityPolicy({
   directives: {
-    defaultSrc: ["'self'", "'unsafe-inline'"],
+    defaultSrc: ["'self'", "'unsafe-inline'", "https://slack.com"],
   }
 }));
 app.use(logger("dev"));
@@ -64,7 +64,7 @@ app.listen(port, () => {
   if(force && pmInit) {
     sequelize.sync({ force });
   } else {
-    // sequelize.sync();
+    sequelize.sync();
   }
 
   console.log("mysql database connect success !");
