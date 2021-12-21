@@ -4,7 +4,7 @@ export interface AlarmAttributes {
   id: number;
   title: string;
   agree: "Y" | "N";
-  name: string;
+  name?: string;
   slack: string;
   createdAt?: Date;
   updatedAt?: Date;

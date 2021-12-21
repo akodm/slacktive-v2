@@ -2,12 +2,12 @@ import { Sequelize, DataTypes, BuildOptions, Model } from 'sequelize';
 
 export interface UserAttributes {
   slack: string;
-  name: string;
-  channel: string;
-  tag: string;
-  phone: string;
-  email: string;
-  address: string;
+  name?: string;
+  channel?: string;
+  tag?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   createdAt?: Date;
   updatedAt?: Date;
 };

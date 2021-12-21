@@ -3,13 +3,13 @@ import { Sequelize, DataTypes, BuildOptions, Model } from 'sequelize';
 export interface TaskAttributes {
   id: number;
   title: string;
-  text: string;
-  location: string;
+  text?: string;
+  location?: string;
   category: string;
   participation: object;
   start: string;
   end: string;
-  name: string;
+  name?: string;
   slack: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -66,7 +66,7 @@ export const taskTable = (sequelize: Sequelize): TaskStatic => {
     },
     name: {
       type: DataTypes.STRING(10),
-      allowNull: false,
+      allowNull: true,
       comment: "이름"
     },
     slack: {

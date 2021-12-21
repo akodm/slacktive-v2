@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize';
 
 import { AddHolidayStatic, addHolidayTable } from './models/addHoliday';
+import { TemporaryStatic, temporaryTable } from './models/temporary';
 import { OvertimeStatic, overtimeTable } from './models/overtime';
 import { ChannelStatic, channelTable } from './models/channel';
 import { HolidayStatic, holidayTable } from './models/holiday';
@@ -52,6 +53,7 @@ try {
 			| AttenStatic
 			| AlarmStatic
 			| AddHolidayStatic
+			| TemporaryStatic
 		)[] = [
 		userTable,
 		tokenTable,
@@ -63,7 +65,8 @@ try {
 		channelTable,
 		attenTable,
 		alarmTable,
-		addHolidayTable
+		addHolidayTable,
+		temporaryTable
 	];
 	
 	for (const modelDefiner of modelDefiners) {

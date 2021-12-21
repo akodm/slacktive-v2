@@ -4,7 +4,8 @@ export interface AddHolidayAttributes {
   id: number;
   text: string;
   count: number;
-  name: string;
+  permanent: "Y" | "N";
+  name?: string;
   slack: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -32,6 +33,11 @@ export const addHolidayTable = (sequelize: Sequelize): AddHolidayStatic => {
       type: DataTypes.INTEGER,
       allowNull: false,
       comment: "추가 갯 수"
+    },
+    permanent: {
+      type: DataTypes.STRING(1),
+      allowNull: false,
+      comment: "영구적인 증가 여부"
     },
     name: {
       type: DataTypes.STRING(10),

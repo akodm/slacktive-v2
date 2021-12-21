@@ -1,28 +1,108 @@
 import { Model } from 'sequelize/types';
+import { NextFunction } from 'express';
 import { Op } from 'sequelize';
 import moment from 'moment';
+import axios from 'axios';
+import qs from 'qs';
 
-import { ATTEN_CATEGORY, CATEGORYS, DEFAULT_FORMAT, NUMBER_EMPTY, PMS, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET } from './consts';
-import { DataResTypes, InitTypes, SlackDataTypes, TimeDataTypes, TimeParserTypes } from './types';
+import { ATTEN_CATEGORY, BACK_DAY_MONTH_REGEXP, BACK_DAY_MONTH_REGEXP_E, BACK_REFEXP, CATEGORYS, CATEGORY_REGEXP, COMMA_REGEXP, DAY_REGEXP, DEFAULT_FORMAT, HALF_CATEGORY, HOLIDAY_REGEXP, MONTH_REGEXP, MULTI_REGEXP, NUMBER_EMPTY, NUMBER_EMPTY_4, PMS, SPACE_REGEXP, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET, YEAR_REGEXP } from './consts';
+import { DataResTypes, GetUserTypes, HolidayConversionTypes, HolidayDataTypes, InitTypes, SlackDataTypes, TimeDataTypes, TimeParserTypes } from './types';
 import { ChannelAttributes } from '../sequelize/models/channel';
 import { StateAttributes } from '../sequelize/models/state';
 import { UserAttributes } from '../sequelize/models/user';
+import { API_HEADERS } from './consts';
+import { signAccess } from './token';
 import sequelize from '../sequelize';
+import { encrypt } from './crypto';
 
-const { user, channel, state } = sequelize.models;
+const { user, token, channel, state } = sequelize.models;
 
-export const findUserName = async (slack): Promise<string> => {
+const { SLACK_URL } = process.env;
+
+export const loginProcess = async (data, isBot: boolean, next: NextFunction) => {
+  try {
+    let info = null;
+
+    if (!isBot) {
+      const body = qs.stringify({
+        token: data.access_token
+      });
+  
+      info = await axios.post(`${SLACK_URL}/api/users.identity`, body, API_HEADERS);
+    }
+
+    const slack = encrypt(data.id);
+
+    const { access, refresh, error, message } = signAccess({ slack });
+
+    if (error) {
+      return next({ s: 403, m: message });
+    }
+
+    await sequelize.transaction(async transaction => {
+      const userData: [Model<UserAttributes>, boolean] = await user.findOrCreate({
+        where: {
+          slack: data.id,
+        },
+        defaults: {
+          slack: data.id,
+          name: (info?.data?.user?.name) || "BOT"
+        },
+        transaction
+      });
+
+      if (userData[1]) {
+        await token.create({
+          slack: data.id,
+          apiRefresh: refresh,
+          access: data.access_token,
+          refresh: data.refresh_token
+        }, {
+          transaction
+        });
+      } else {
+        await token.update({
+          apiRefresh: refresh,
+          access: data.access_token,
+          refresh: data.refresh_token
+        }, {
+          where: {
+            slack: data.id
+          },
+          transaction
+        });
+      }
+    });
+
+    return { access, refresh };
+  } catch (err) {
+    return next(err);
+  }
+};
+
+export const findUser = async (slack): Promise<GetUserTypes> => {
   try {
     const data: Model<UserAttributes> = await user.findOne({
+      attributes: ["slack", "name"],
       where: {
         slack
       }
     });
 
-    return data.getDataValue("name") || null;
+    if (!data?.getDataValue("slack")) {
+      throw { message: "slack user not found." };
+    }
+
+    return { 
+      name: data.getDataValue("name"), 
+      slack: data.getDataValue("slack") 
+    };
   } catch (err) {
     console.error(err.message, "사용자 이름을 찾지 못했습니다.");
-    return null;
+    return {
+      name: null,
+      slack: null
+    };
   }
 };
 
@@ -97,7 +177,7 @@ export const isHalfHoliday = async (slack): Promise<DataResTypes> => {
       where: {
         slack,
         state: {
-          [Op.or]: ["오후반차", "오전반차", "반차"]
+          [Op.or]: HALF_CATEGORY
         }
       }
     });
@@ -114,7 +194,12 @@ export const isHalfHoliday = async (slack): Promise<DataResTypes> => {
 };
 
 export const timeConversion = (ts: number, text: string[], category): TimeParserTypes => {
-  let res = "";
+  let res = {
+    hour: null,
+    mint: null,
+    time: null,
+    error: null,
+  };
 
   try {
     let [hour, mint] = text;
@@ -122,9 +207,7 @@ export const timeConversion = (ts: number, text: string[], category): TimeParser
     hour = hour?.replace(/시/g, "");
     mint = mint?.replace(/분/g, "");
 
-    const [ H, m, A ] = moment.unix(ts).utcOffset(UTC_OFFSET).format("HH/mm/A")?.split("/");
-
-    console.log("ampm? :", A);
+    const [H, m, A] = moment.unix(ts).utcOffset(UTC_OFFSET).format("HH/mm/A")?.split("/");
 
     if (hour && PMS.includes(A) && parseInt(hour) <= 12 && category === "퇴근") {
       hour = `${parseInt(hour, 10) + 12}`;
@@ -162,21 +245,13 @@ export const timeConversion = (ts: number, text: string[], category): TimeParser
       mint = `0${mint}`;
     }
 
-    res = `${hour}:${mint}`;
-
-    return {
-      hour,
-      mint,
-      time: moment.unix(ts).utcOffset(UTC_OFFSET).format(`YYYY-MM-DD ${res}`),
-      error: null
-    };
+    res.hour = hour;
+    res.mint = mint;
+    res.time = moment.unix(ts).utcOffset(UTC_OFFSET).format(`YYYY-MM-DD ${hour}:${mint}`);
   } catch (err) {
-    return {
-      hour: null,
-      mint: null,
-      time: null,
-      error: `${err.message}, ${JSON.stringify(text)}`
-    };
+    res.error = `${err.message}, ${JSON.stringify(text)}`;
+  } finally {
+    return res;
   }
 };
 
@@ -186,14 +261,18 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
   try {
     if (TIME_REGEXP.test(text)) {
       const splitText: RegExpExecArray = TIME_REGEXP.exec(text);
-      const tsFormat: string = moment.unix(ts).utcOffset(UTC_OFFSET).format("YYYY-MM-DD HH:mm");
+      const tsFormat: string = moment.unix(ts).utcOffset(UTC_OFFSET).format(DEFAULT_FORMAT);
       let category: string = CATEGORYS.reduce((result: string, cate) => (cate.sub.includes(splitText[3])) ? cate.key : result, "출근");
       const { time, error }: TimeParserTypes = timeConversion(ts, [splitText[1], splitText[2]], category);
       const { result, error: err, data }: DataResTypes = await isHalfHoliday(user);
-      const name: string | null = await findUserName(user);
+      const { name } = await findUser(user);
 
       if (!time || error || err) {
         throw { message: error || err };
+      }
+
+      if (!name) {
+        throw { message: "사용자가 없습니다." };
       }
 
       let isHalf = false;
@@ -225,7 +304,7 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
         slack: user
       };
     } else {
-      console.log(JSON.stringify(data), "해당 데이터는 정규식에 의해 처리되지 않았습니다.");
+      console.log(JSON.stringify(data), "해당 출퇴근 데이터는 정규식에 의해 처리되지 않았습니다.");
       return null;
     }
   } catch (err) {
@@ -234,9 +313,155 @@ export const timeParser = async (data): Promise<TimeDataTypes | null> => {
   }
 };
 
+export const holidayCountCheck = (start: string, end: string, category: string) => {
+  let count = 0.0;
+
+  if (CATEGORY_REGEXP.test(category)) {
+    count = 0.5;
+  } else {
+    count = 1.0;
+  }
+
+  return (moment(end).diff(start, "days") + count) || 1;
+};
+
+export const holidayConversion = (data: HolidayConversionTypes): HolidayDataTypes[] | null => {
+  const result = [];
+  
+  try {
+    const { splitText, category, text, ts, format, name, slack } = data;
+    const defaultYear = moment.unix(ts).utcOffset(UTC_OFFSET).format("YYYY")
+    const defaultMonth = moment.unix(ts).utcOffset(UTC_OFFSET).format("MM");
+    const defaultDay = moment.unix(ts).utcOffset(UTC_OFFSET).format("DD");
+    let [, , year = defaultYear, month = defaultMonth, days = defaultDay] = splitText;
+
+    if (!NUMBER_EMPTY_4.test(year)) {
+      year = `20${year}`;
+    }
+
+    if (!NUMBER_EMPTY.test(month)) {
+      month = `0${month}`;
+    }
+
+    if (year) {
+      year = year.replace(YEAR_REGEXP, "");
+    }
+
+    if (month) {
+      month = month.replace(MONTH_REGEXP, "");
+    }
+
+    if (days) {
+      days = days.replace(DAY_REGEXP, "");
+      days = days.replace(SPACE_REGEXP, "");
+    }
+
+    const date = `${year}-${month}`;
+
+    if (!MULTI_REGEXP.test(days)) {
+      days = NUMBER_EMPTY.test(days) ? days : `0${days}`;
+
+      const start = `${date}-${days}`;
+      const end = `${date}-${days}`;
+
+      const count = holidayCountCheck(start, end, category);
+
+      result.push({ text, category, ts, start, end, count, format, name, slack });
+    }
+
+    if (COMMA_REGEXP.test(days)) {
+      const commaData = days.split(",");
+
+      commaData.forEach(day => {
+        day = NUMBER_EMPTY.test(day) ? day : `0${day}`;
+
+        const start = `${date}-${day}`;
+        const end = `${date}-${day}`;
+
+        const count = holidayCountCheck(start, end, category);
+
+        result.push({ text, category, ts, start, end, count, format, name, slack });
+      });
+    }
+
+    let endDate = date;
+    if (BACK_REFEXP.test(days)) {
+      let [day_start, day_end] = days.split("~");
+
+      day_start = NUMBER_EMPTY.test(day_start) ? day_start : `0${day_start}`;
+
+      if (BACK_DAY_MONTH_REGEXP.test(day_end)) {
+        day_end = day_end.replace(SPACE_REGEXP, "");
+
+        let [, end_year, end_month, end_day] = BACK_DAY_MONTH_REGEXP_E.exec(day_end);
+
+        end_year = end_year ? end_year.replace(YEAR_REGEXP, "") : year;
+        end_month = end_month ? end_month.replace(MONTH_REGEXP, "") : month;
+        end_day = end_day ? end_day.replace(DAY_REGEXP, "") : defaultDay;
+
+        end_year = NUMBER_EMPTY_4.test(end_year) ? end_year : `20${end_year}`;
+        end_month = NUMBER_EMPTY.test(end_month) ? end_month : `0${end_month}`;
+        end_day = NUMBER_EMPTY.test(end_day) ? end_day : `0${end_day}`;
+
+        endDate = `${end_year}-${end_month}`;
+        day_end = end_day;
+      } else if (!NUMBER_EMPTY.test(day_end)) {
+        day_end = `0${day_end}`;
+      }
+
+      const start = `${date}-${day_start}`;
+      const end = `${endDate}-${day_end}`;
+
+      const count = holidayCountCheck(start, end, category);
+
+      result.push({ text, category, ts, start, end, count, format, name, slack });
+    }
+
+    return result;
+  } catch (err) {
+    console.error(err.message, "휴가 데이터 변환에 실패하였습니다.");
+    return null;
+  }
+};
+
+export const holidayParser = async (data): Promise<HolidayDataTypes[] | null> => {
+  const { text, user, ts }: SlackDataTypes = data;
+
+  try {
+    if (HOLIDAY_REGEXP.test(text)) {
+      const splitText: RegExpExecArray = HOLIDAY_REGEXP.exec(text);
+      const tsFormat: string = moment.unix(ts).utcOffset(UTC_OFFSET).format(DEFAULT_FORMAT);
+      const category = splitText[6].replace(SPACE_REGEXP, "") || "휴가";
+      const { name } = await findUser(user);
+
+      if (!name) {
+        throw { message: "사용자가 없습니다." };
+      }
+      
+      const holidayDatas = holidayConversion({
+        splitText, 
+        category,
+        text,
+        ts,
+        format: tsFormat,
+        name,
+        slack: user
+      });
+
+      return holidayDatas;
+    } else {
+      console.log(JSON.stringify(data), "해당 휴가 데이터는 정규식에 의해 처리되지 않았습니다.");
+      return null;
+    }
+  } catch (err) {
+    console.error(err.message, "휴가 설정에 실패하였습니다.");
+    return null;
+  }
+};
+
 export const defaultEvent = async (event) => {
   try {
-    console.log("default event");
+    console.log("이곳은 아직 메시지 이벤트가 없습니다.", event);
   } catch (err) {
     console.error(err.message, "기본 이벤트 처리가 정상적으로 수행되지 않았습니다.");
   }

@@ -5,7 +5,7 @@ export interface OvertimeAttributes {
   startData: number;
   endData: number;
   overtime: number;
-  name: string;
+  name?: string;
   slack: string;
   createdAt?: Date;
   updatedAt?: Date;

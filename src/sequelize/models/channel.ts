@@ -3,7 +3,7 @@ import { Sequelize, DataTypes, BuildOptions, Model } from 'sequelize';
 export interface ChannelAttributes {
   id: number;
   channel: string;
-  memo: string;
+  memo?: string;
   createdAt?: Date;
   updatedAt?: Date;
 };

@@ -8,7 +8,7 @@ export interface StateAttributes {
   tardyCount: number;
   overtimeCount: number;
   state: string;
-  name: string;
+  name?: string;
   slack: string;
   createdAt?: Date;
   updatedAt?: Date;

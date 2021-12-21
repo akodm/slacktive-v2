@@ -25,6 +25,7 @@ const {
   DB_FORCE = "false",
 	pm_id,
 	NODE_ENV = "development",
+  COOKIE_SECRET,
   // REDIS_HOST,
   // REDIS_PORT
 } = process.env;
@@ -33,7 +34,7 @@ const app = express();
 
 const corsOptions = {
   origin: CLIENT_URL,
-  optionsSuccessStatus: 200
+  credentials: true,
 };
 const port = parseInt(PORT, 10);
 const force = DB_FORCE === "true" ? true : false;
@@ -42,13 +43,19 @@ let pmInit = false;
 app.use(cors(corsOptions));
 app.use(helmet.contentSecurityPolicy({
   directives: {
-    defaultSrc: ["'self'", "'unsafe-inline'", "https://slack.com"],
+    defaultSrc: [
+      "'self'", 
+      "'unsafe-inline'", 
+      "https://slack.com", 
+      "https://a.slack-edge.com", 
+      CLIENT_URL
+    ],
   }
 }));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser(COOKIE_SECRET));
 
 if(NODE_ENV === "production") {
   if(pm_id === "0") {
@@ -60,12 +67,14 @@ if(NODE_ENV === "production") {
   pmInit = true;
 }
 
-app.listen(port, () => {
+app.listen(port, async () => {
   if(force && pmInit) {
     sequelize.sync({ force });
   } else {
-    sequelize.sync();
+    // sequelize.sync();
   }
+
+  await sequelize.query("SET SQL_SAFE_UPDATES = 0");
 
   console.log("mysql database connect success !");
 

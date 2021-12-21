@@ -9,7 +9,7 @@ export interface HolidayAttributes {
   count: number;
   ts: string;
   format: string;
-  name: string;
+  name?: string;
   slack: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -49,14 +49,13 @@ export const holidayTable = (sequelize: Sequelize): HolidayStatic => {
       comment: "종료일"
     },
     count: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DOUBLE,
       allowNull: false,
       comment: "사용 갯 수"
     },
     ts: {
       type: DataTypes.STRING(30),
       allowNull: false,
-      unique: true,
       comment: "슬랙 메시지 타임스탬프",
     },
     format: {

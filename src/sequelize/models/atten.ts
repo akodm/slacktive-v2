@@ -7,7 +7,7 @@ export interface AttenAttributes {
   time: string;
   ts: string;
   format: string;
-  name: string;
+  name?: string;
   slack: string;
   createdAt?: Date;
   updatedAt?: Date;

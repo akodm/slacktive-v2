@@ -2,8 +2,8 @@ import { Sequelize, DataTypes, BuildOptions, Model } from 'sequelize';
 
 export interface TokenAttributes {
   id: number;
-  xoxp: string;
-  access: string;
+  apiRefresh?: string;
+  access?: string;
   refresh: string;
   slack: string;
   createdAt?: Date;
@@ -23,20 +23,20 @@ export const tokenTable = (sequelize: Sequelize): TokenStatic => {
       primaryKey: true,
       autoIncrement: true
     },
-    xoxp: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-      comment: "사용자 토큰"
+    apiRefresh: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: "API 새로고침 토큰"
     },
     access: {
       type: DataTypes.STRING(255),
-      allowNull: false,
-      comment: "사용자 접근 토큰"
+      allowNull: true,
+      comment: "접근 토큰"
     },
     refresh: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      comment: "사용자 새고로침 토큰"
+      comment: "새고로침 토큰"
     },
     slack: {
       type: DataTypes.STRING(20),
