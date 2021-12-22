@@ -5,8 +5,8 @@ import moment from 'moment';
 import axios from 'axios';
 import qs from 'qs';
 
-import { ATTEN_CATEGORY, BACK_DAY_MONTH_REGEXP, BACK_DAY_MONTH_REGEXP_E, BACK_REFEXP, CATEGORYS, CATEGORY_REGEXP, COMMA_REGEXP, DAY_REGEXP, DEFAULT_FORMAT, HALF_CATEGORY, HOLIDAY_REGEXP, MONTH_REGEXP, MULTI_REGEXP, NUMBER_EMPTY, NUMBER_EMPTY_4, PMS, SPACE_REGEXP, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET, YEAR_REGEXP } from './consts';
-import { DataResTypes, GetUserTypes, HolidayConversionTypes, HolidayDataTypes, InitTypes, SlackDataTypes, TimeDataTypes, TimeParserTypes } from './types';
+import { ATTEN_CATEGORY, BACK_DAY_MONTH_REGEXP, BACK_DAY_MONTH_REGEXP_E, BACK_REFEXP, CATEGORYS, CATEGORY_REGEXP, COMMA_REGEXP, DAY_REGEXP, DEFAULT_FORMAT, HALF_CATEGORY, HOLIDAY_REGEXP, MESSAGE_CHANGED, MESSAGE_CREATED, MESSAGE_DELETED, MONTH_REGEXP, MULTI_REGEXP, NUMBER_EMPTY, NUMBER_EMPTY_4, PMS, SPACE_REGEXP, TARDY_AM, TARDY_PM, TIME_REGEXP, UTC_OFFSET, YEAR_REGEXP } from './consts';
+import { DataResTypes, GetUserTypes, HolidayConversionTypes, HolidayReturnTypes, InitTypes, MessageChangeEventTypes, MessageCreateEventTypes, MessageDeleteEventTypes, SlackDataTypes, TimeReturnTypes, TimeParserTypes } from './types';
 import { ChannelAttributes } from '../sequelize/models/channel';
 import { StateAttributes } from '../sequelize/models/state';
 import { UserAttributes } from '../sequelize/models/user';
@@ -15,9 +15,12 @@ import { signAccess } from './token';
 import sequelize from '../sequelize';
 import { encrypt } from './crypto';
 
-const { user, token, channel, state } = sequelize.models;
+const { user, token, channel, state, atten, holiday } = sequelize.models;
 
-const { SLACK_URL } = process.env;
+const { NODE_ENV, SLACK_URL, RELEASE_HOLIDAY_CHANNEL, TEST_HOLIDAY_CHANNEL, RELEASE_TIME_CHANNEL, TEST_TIME_CHANNEL } = process.env;
+
+const HOLIDAY_CHANNEL = NODE_ENV === "development" ? TEST_HOLIDAY_CHANNEL : RELEASE_HOLIDAY_CHANNEL;
+const TIME_CHANNEL = NODE_ENV === "development" ? TEST_TIME_CHANNEL : RELEASE_TIME_CHANNEL;
 
 export const loginProcess = async (data, isBot: boolean, next: NextFunction) => {
   try {
@@ -255,7 +258,7 @@ export const timeConversion = (ts: number, text: string[], category): TimeParser
   }
 };
 
-export const timeParser = async (data): Promise<TimeDataTypes | null> => {
+export const timeParser = async (data): Promise<TimeReturnTypes | null> => {
   const { text, user, ts }: SlackDataTypes = data;
 
   try {
@@ -325,7 +328,7 @@ export const holidayCountCheck = (start: string, end: string, category: string) 
   return (moment(end).diff(start, "days") + count) || 1;
 };
 
-export const holidayConversion = (data: HolidayConversionTypes): HolidayDataTypes[] | null => {
+export const holidayConversion = (data: HolidayConversionTypes): HolidayReturnTypes[] | null => {
   const result = [];
   
   try {
@@ -424,7 +427,7 @@ export const holidayConversion = (data: HolidayConversionTypes): HolidayDataType
   }
 };
 
-export const holidayParser = async (data): Promise<HolidayDataTypes[] | null> => {
+export const holidayParser = async (data): Promise<HolidayReturnTypes[] | null> => {
   const { text, user, ts }: SlackDataTypes = data;
 
   try {
@@ -459,6 +462,91 @@ export const holidayParser = async (data): Promise<HolidayDataTypes[] | null> =>
   }
 };
 
+export const messageChangeEvent = async (channel: string, event: MessageChangeEventTypes) => {
+  try {
+    if (channel === TIME_CHANNEL) {
+      const updatedData = await timeParser(event.message);
+
+      await atten.update({
+        ...updatedData
+      }, {
+        where: {
+          ts: event.previous_message.ts
+        }
+      });
+    }
+
+    if (channel === HOLIDAY_CHANNEL) {
+      const parseData = await holidayParser(event.message);
+      const previousData = await holidayParser(event.previous_message);
+
+      if (parseData && parseData.length && previousData && previousData.length) {
+        const updatedData = parseData.filter(arr => arr);
+        const deletedData = previousData.filter(arr => arr);
+
+        sequelize.transaction(async transaction => {
+          await holiday.destroy({
+            where: {
+              ts: deletedData.map(del => del.ts.toString())
+            },
+            transaction
+          });
+
+          await holiday.bulkCreate(updatedData, { individualHooks: true, transaction });
+        });
+      }
+    }
+  } catch (err) {
+    console.error(err.message, "메시지 변경 이벤트 처리에 실패하였습니다.");
+  }
+};
+
+export const messageDeleteEvent = async (channel: string, event: MessageDeleteEventTypes) => {
+  try {
+    if (channel === TIME_CHANNEL) {
+      await atten.destroy({
+        where: {
+          ts: event.previous_message.ts
+        }
+      });
+    }
+
+    if (channel === HOLIDAY_CHANNEL) {
+      await holiday.destroy({
+        where: {
+          ts: event.deleted_ts
+        }
+      });
+    }
+  } catch (err) {
+    console.error(err.message, "메시지 삭제 이벤트 처리에 실패하였습니다.");
+  }
+};
+
+export const messageCreateEvent = async (channel: string, event: MessageCreateEventTypes) => {
+  try {
+    if (channel === TIME_CHANNEL) {
+      const parseData = await timeParser(event);
+
+      if (parseData) {
+        await atten.create({ ...parseData });
+      }
+    }
+
+    if (channel === HOLIDAY_CHANNEL) {
+      const parseData = await holidayParser(event);
+
+      if (parseData && parseData.length) {
+        const createdData = parseData.filter(arr => arr);
+
+        await holiday.bulkCreate(createdData, { individualHooks: true });
+      }
+    }
+  } catch (err) {
+    console.error(err.message, "메시지 생성 이벤트 처리에 실패하였습니다.");
+  }
+};
+
 export const defaultEvent = async (event) => {
   try {
     console.log("이곳은 아직 메시지 이벤트가 없습니다.", event);
@@ -467,42 +555,42 @@ export const defaultEvent = async (event) => {
   }
 };
 
-export const timeChannelEvent = async (event) => {
+export const timeChannelEvent = (event): void => {
   try {
-    console.log("time channel event");
+    console.log(event);
+    event.subtype = event.subtype ? event.subtype : MESSAGE_CREATED;
+
+    switch(event.subtype) {
+      case MESSAGE_DELETED: messageDeleteEvent(TIME_CHANNEL, event);
+        return;
+      case MESSAGE_CHANGED: messageChangeEvent(TIME_CHANNEL, event);
+        return;
+      case MESSAGE_CREATED: messageCreateEvent(TIME_CHANNEL, event);
+        return;
+    }
+
+    console.info(event?.channel, "이벤트 처리가 수행되지 않았습니다.");
   } catch (err) {
     console.error(err.message, "출퇴근 관련 이벤트 처리가 정상적으로 수행되지 않았습니다.");
   }
 };
 
-export const holidayChannelEvent = async (event) => {
+export const holidayChannelEvent = (event): void => {
   try {
-    console.log("holiday channel event");
+    console.log(event);
+    event.subtype = event?.subtype ? event.subtype : MESSAGE_CREATED;
+
+    switch(event.subtype) {
+      case MESSAGE_DELETED: messageDeleteEvent(HOLIDAY_CHANNEL, event);
+        return;
+      case MESSAGE_CHANGED: messageChangeEvent(HOLIDAY_CHANNEL, event);
+        return;
+      case MESSAGE_CREATED: messageCreateEvent(HOLIDAY_CHANNEL, event);
+        return;
+    }
+
+    console.info(event?.channel, "이벤트 처리가 수행되지 않았습니다.");
   } catch (err) {
     console.error(err.message, "휴가 관련 이벤트 처리가 정상적으로 수행되지 않았습니다.");
-  }
-};
-
-export const messageChangeEvent = async () => {
-  try {
-    console.log("Message Change");
-  } catch (err) {
-    console.error(err.message, "메시지 변경 이벤트 처리에 실패하였습니다.");
-  }
-};
-
-export const messageDeleteEvent = async () => {
-  try {
-    console.log("Message Delete");
-  } catch (err) {
-    console.error(err.message, "메시지 삭제 이벤트 처리에 실패하였습니다.");
-  }
-};
-
-export const messageCreateEvent = async () => {
-  try {
-    console.log("Message Create");
-  } catch (err) {
-    console.error(err.message, "메시지 생성 이벤트 처리에 실패하였습니다.");
   }
 };

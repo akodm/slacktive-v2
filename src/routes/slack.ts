@@ -6,7 +6,7 @@ import qs from 'qs';
 
 import { channelInit, defaultEvent, holidayChannelEvent, holidayParser, membersInit, timeChannelEvent, timeParser } from "../utils/slack";
 import { API_HEADERS, APP_RATE_LIMITED, EVENT_CALLBACK, INIT_DATE, URL_VERIFICATION } from "../utils/consts";
-import { HolidayDataTypes, TimeDataTypes } from "../utils/types";
+import { HolidayReturnTypes, TimeReturnTypes } from "../utils/types";
 import sequelize from '../sequelize';
 
 const router = express.Router();
@@ -18,7 +18,7 @@ const {
   ADMIN_TOKEN
 } = process.env;
 
-const HOLIDAY_CHANNEL = NODE_ENV === "development" ? RELEASE_HOLIDAY_CHANNEL : TEST_HOLIDAY_CHANNEL;
+const HOLIDAY_CHANNEL = NODE_ENV === "development" ? TEST_HOLIDAY_CHANNEL : RELEASE_HOLIDAY_CHANNEL;
 const TIME_CHANNEL = NODE_ENV === "development" ? TEST_TIME_CHANNEL : RELEASE_TIME_CHANNEL;
 
 const { atten, holiday } = sequelize.models;
@@ -134,11 +134,11 @@ export default (io: Server) => {
       const messages =  data.messages?.reverse();
 
       if (init) {
-        const initData: TimeDataTypes[] = messages.map(timeParser);
+        const initData: TimeReturnTypes[] = messages.map(timeParser);
 
         await Promise
           .all(initData)
-          .then(async (res: TimeDataTypes[]) => {
+          .then(async (res: TimeReturnTypes[]) => {
             const bulkArray = (await res).filter(data => data);
 
             if (res && res.length) {
@@ -185,11 +185,11 @@ export default (io: Server) => {
       const messages =  data.messages?.reverse();
 
       if (init) {
-        const initData: [HolidayDataTypes[] | null] = messages.map(holidayParser);
+        const initData: [HolidayReturnTypes[] | null] = messages.map(holidayParser);
 
         await Promise
           .all([...initData])
-          .then(async (res: [HolidayDataTypes[] | null]) => {
+          .then(async (res: [HolidayReturnTypes[] | null]) => {
             const parseData = await [...res];
             const bulkArray = [];
 
@@ -233,8 +233,6 @@ export default (io: Server) => {
         return next({ s: 403, m: "제한시간이 초과되었습니다." });
       }
 
-      console.log(event);
-
       if (type !== EVENT_CALLBACK || !event?.channel) {
         return next({ s: 403, m: "알수없는 이벤트입니다." });
       }
@@ -244,9 +242,9 @@ export default (io: Server) => {
       } else {
         switch (event.channel) {
           case TIME_CHANNEL: timeChannelEvent(event);
-          break;
+            break;
           case HOLIDAY_CHANNEL: holidayChannelEvent(event);
-          break;
+            break;
           default: defaultEvent(event);
         }
       }

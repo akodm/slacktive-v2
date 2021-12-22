@@ -37,7 +37,7 @@ export type TimeParserTypes = {
 };
 
 // 출퇴근 데이터 타입.
-export type TimeDataTypes = {
+export type TimeReturnTypes = {
   text: string;
   category: string;
   time: string;
@@ -57,7 +57,7 @@ export type HolidayConversionTypes = {
   slack: string;
 };
 
-export type HolidayDataTypes = {
+export type HolidayReturnTypes = {
   text: string;
   category: string;
   start: string;
@@ -97,4 +97,55 @@ export interface SlackRequest extends TokenRequest {
     access_token: string;
     refresh_token: string;
   };
+};
+
+export interface MessageTypes {
+  client_msg_id: string;
+  type: string;
+  text: string;
+  user: string;
+  ts: string;
+  team: string;
+  edited?: {
+    user: string;
+    ts: string;
+  };
+  blocks?: {
+    type: string;
+    block_id: string;
+    elements: any[];
+  }[];
+};
+
+export interface MessageCreateEventTypes extends MessageTypes {
+  channel: string;
+  event_ts: string;
+  channel_type: string;
+};
+
+export interface MessageChangeEventTypes {
+  type: string;
+  subtype: "message_changed";
+  hidden: boolean;
+  message: MessageTypes & {
+    source_team: string;
+    user_team: string;
+  };
+  channel: string;
+  previous_message: MessageTypes;
+  event_ts: string;
+  ts: string;
+  channel_type: string;
+};
+
+export interface MessageDeleteEventTypes {
+  type: string;
+  subtype: "message_deleted";
+  hidden: boolean;
+  deleted_ts: string;
+  channel: string;
+  previous_message: MessageTypes;
+  event_ts: string;
+  ts: string;
+  channel_type: string;
 };

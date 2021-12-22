@@ -80,6 +80,7 @@ export const EVENT_CALLBACK = "event_callback";
 
 export const MESSAGE_CHANGED = "message_changed";
 export const MESSAGE_DELETED = "message_deleted";
+export const MESSAGE_CREATED = "message_created";
 
 export const GRANT_TYPE_AUTH = "authorization_code";
 export const GRANT_TYPE_REFRESH = "refresh_token";
